@@ -1,0 +1,8 @@
+numpy==1.18.0
+typing==3.7.4.1
+boto3==1.13.23
+lhsmdu==0.1
+pydantic==1.5.1
+pandas==0.25.3
+cvxpy==1.1.1
+fastapi==0.58.1
