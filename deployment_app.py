@@ -557,6 +557,7 @@ def readNewUserInfo(engineRecords,  new_session_id, dummy=False):
             # print(response['Items'][0])
             try: 
                 max_chg_power = response['Items'][0]['vehicle_chargeRate']
+                
             except: 
                 print("Don't know user power for userId:",session_data[0][2])
                 max_chg_power = 3300
@@ -720,9 +721,9 @@ def triggerTimeBasedOptimization():
                                                         optHour,
                                                         opt_horizon=5, TOU_tariff=TOU_15min())   ##### POTENTIAL FUTURE STATES 
     
-    # postOptimizedStates(OptimizedStates)
-    # postOptimizedPrices_v3(optimizedPrices_v3, optTime)
-    # postStateRecords(stateRecords)
+    postOptimizedStates(OptimizedStates)
+    postOptimizedPrices_v3(optimizedPrices_v3, optTime)
+    postStateRecords(stateRecords)
 
 
 def triggerBackUpOptimization():

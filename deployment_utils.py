@@ -131,9 +131,9 @@ def generateSessions(s_year, s_month, s_day, s_hour,
         session_df['cumEnergy_Wh']=session_df['cumEnergy_Wh'].astype(float)
         session_df['cumEnergy_KWh']=session_df['cumEnergy_Wh']/1000
         session_df['DurationHrs'] = session_df['DurationHrs'].astype(float)
-
+        print(len(session_df))
         # 1. peakPower_W = 0 and cumEnergy_W = 0: delete  
-        session_df = session_df[(session_df["peakPower_W"]!=0) & (session_df["cumEnergy_Wh"]!=0)]
+#         session_df = session_df[(session_df["peakPower_W"]!=0) & (session_df["cumEnergy_Wh"]!=0)]
 
         # 2. Fix the user peak_powers 
         # some users have historical peak power > 6.6 / 7 

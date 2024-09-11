@@ -386,7 +386,7 @@ class Optimization_station:
 
         obj = cp.Minimize(J)
         prob = cp.Problem(obj, constraints)
-        prob.solve(solver='GUROBI')
+        prob.solve()
         if prob.status != 'optimal':
             print(prob.status)
             print("Gurobi failed, cant solve for power")
@@ -477,7 +477,7 @@ class Optimization_station:
         J2 = (new_leave_obj + existing_sch_obj + existing_reg_obj + self.Parameters.cost_dc * 0) * v[2]
 
         J = J0 + J1 + J2
-
+        print()
 
         try:
             J_array = np.array([J0.value, J1.value, J2.value])
@@ -486,6 +486,8 @@ class Optimization_station:
             J_array = np.array([J0.value, J1.value, J2])
 
         return J, J_array, current_peak_sch, current_peak_reg
+
+
     def run_opt(self, solution_algorithm):
         """ BCD or grid_search"""
         ### This is the main optimization function (multi-convex principal problem)
@@ -546,6 +548,7 @@ class Optimization_station:
 
                 _, J_array,_,_= self.constr_J(uk_flex, zk, vk, p_dc_sch_k, p_dc_reg_k)
                 improve = Jk[count] - J_array.sum()
+                print(improve)
                 # print(J_func(zk, uk_flex, vk))
                 count += 1
 
@@ -568,21 +571,25 @@ class Optimization_station:
             J_opt = 10000
             z_opt = zk
             uk_flex, e_deliveredk_flex, p_dc_sch_k, p_dc_reg_k = self.argmin_u(zk, vk)
-            print(p_dc_sch_k, p_dc_reg_k)
+            print("DC_SCH:", p_dc_sch_k, "DC_REG:", p_dc_reg_k)
+            grid_search_results = {}
+
             for (z_sch_k, z_reg_k) in tariff_grid:
                 
                 zk[0] =  z_sch_k
                 zk[1] =  z_reg_k
                 vk = softmax(self.Problem.THETA @ zk).reshape(3,1)
                 J, J_array, _, _ = self.constr_J(uk_flex, zk, vk, p_dc_sch_k, p_dc_reg_k)
-                
-                if J.value < J_opt:
-                    z_opt = zk
-                    J_opt = J.value
-                    J_opt_array = J_array
-                    print(z_opt[0] * 6.6 ,z_opt[1] * 6.6, J_opt)
+                grid_search_results[ (z_sch_k, z_reg_k) ] = {}
+                grid_search_results[ (z_sch_k, z_reg_k) ]["J"] =  J_array.sum()
+                grid_search_results[ (z_sch_k, z_reg_k) ]["J_arr"] =  J_array
+                # if J.value < J_opt:
+                #     z_opt = zk
+                #     J_opt = J.value
+                #     J_opt_array = J_array
+                #     print(z_opt[0] * 6.6 ,z_opt[1] * 6.6, J_opt)
             
-            count = None
+            # count = None
         else:
             print("Error in solution algorithm")
 
@@ -686,12 +693,19 @@ class Optimization_station:
         opt["N_sch"] = self.Problem.N_sch
         opt["N_reg"] = self.Problem.N_reg
 
-        # opt["J"] = Jk[:count]
-        # opt["J_sub"] = J_sub[:, :count]
-        # opt["z_iter"] = z_iter[:, :count]
-        # opt["v_iter"] = v_iter[:, :count]
+        try:
+            
+            opt["J_array"] = J_array
+        except:
+            opt['J'] = J_opt
 
-        opt["num_iter"] = count
+        try:
+            opt['grid_search_results'] = grid_search_results
+        except:
+            opt['grid_search_results'] = None
+
+
+        # opt["num_iter"] = count
         opt["time_start"] = self.Problem.user_time
         opt["time_end_SCH"] = self.Problem.user_time + self.Problem.user_duration
         opt["time_end_REG"] = self.Problem.user_time + self.Problem.N_reg
@@ -703,7 +717,8 @@ class Optimization_station:
         opt["par"] = self.Parameters
 
         end = timeit.timeit()
-        station_info = self.station
+
+        station_info = self.Problem.station_info
         
 
         return station_info, opt
@@ -770,11 +785,20 @@ def main():
                     TOU = TOU_15min(),
                     demand_charge_cost=500)
 
-    prb = Problem(par, sessionRecord, event=event)
+    prb = Problem(par, sessionRecord, hr,event=event)
     obj = Optimization_station(par, prb, hr)
+
     station_info, res = obj.run_opt(solution_algorithm = "grid_search")
 
     print(res['z_hr'])
+    print(res['J'])
+
+
+    prb = Problem(par, sessionRecord, hr,event=event)
+    obj = Optimization_station(par, prb, hr)
+
+    station_info, res = obj.run_opt(solution_algorithm = "BCD")
+
     # print(res['new_peak_sch'])
     # print(res['new_peak_reg'])
 
